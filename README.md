@@ -12,10 +12,10 @@ Cyclone Mecanum (サイクロンメカナム)
 ## Startup
 1. `roscore`
 2. `sudo ds4drv --hidraw --led 00ff00`
-3. (according to the output from 2.)
+3. (according to the output from 2) </br>
    `rosparam set joy_node/dev "/dev/input/js1"`
-4. (optional)
-   `rosrun joy joy_node`
-5. `rostopic echo /joy`
+4. `rosrun joy joy_node`
+5. (optional) </br>
+   `rostopic echo /joy`
 6. `rosrun mecanum_top node /dev/ttyACM0`
 7. `rosrun cyclone_mecanum mecanum_command`

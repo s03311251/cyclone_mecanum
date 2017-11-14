@@ -28,7 +28,7 @@
 //#include <omni_control/ResetCount.h>
 
 ros::Publisher pub_magnetic;
-ros::Publisher pub_elevator;
+ros::Publisher pub_elevator[2];
 //ros::Publisher pub_twist_target;
 ros::ServiceClient client_rotate;
 
@@ -55,11 +55,14 @@ int main(int argc, char **argv){
 	pub_magnetic = n.advertise<m2_umd::PneumaticState>("/mecanum_top/pneumatic_0/state", 1);
 	m2_umd::PneumaticState msg_magnetic;
 
-	pub_elevator = n.advertise<geometry_msgs::Vector3>("/mecanum_top/motor_0/setpoint", 1);
-	geometry_msgs::Vector3 msg_elevator;
-	msg_elevator.x = 0.0;
-	msg_elevator.y = 0.0;
-	msg_elevator.z = 0.0;
+	pub_elevator[0] = n.advertise<geometry_msgs::Vector3>("/mecanum_top/motor_0/setpoint", 1);
+	pub_elevator[1] = n.advertise<geometry_msgs::Vector3>("/mecanum_top/motor_1/setpoint", 1);
+	geometry_msgs::Vector3 msg_elevator[2];
+	for (int i=0;i<2;i++) {
+		msg_elevator[i].x = 0.0;
+		msg_elevator[i].y = 0.0;
+		msg_elevator[i].z = 0.0;
+	}
 
 	client_rotate = n.serviceClient<m2_umd::Instruct_StepperBoard>("/mecanum_top/stepper_0/instruct_StepperBoard");
 	m2_umd::Instruct_StepperBoard srv;
@@ -82,25 +85,74 @@ int main(int argc, char **argv){
 
 		ps4_ns::Data ps4_data=ps4.get_data();
 
-		ROS_DEBUG("cross:%d, rectangle:%d, triangle:%d", ps4_data.cross, ps4_data.rectangle, ps4_data.triangle);
+		ROS_DEBUG("circle:%d, rectangle:%d, triangle:%d", ps4_data.circle, ps4_data.rectangle, ps4_data.triangle);
 //		ROS_DEBUG("hat_lx:%.4f, hat_ly:%.4f, circle:%d", ps4_data.hat_LX, ps4_data.hat_LY, ps4_data.circle);
 //		ROS_DEBUG("l2:%.4f, r2:%.4f, dpad_x: %.1f, dpad_y: %.1f", ps4_data.L2_analog, ps4_data.R2_analog);
 //		ROS_DEBUG("dpad_x: %.1f, dpad_y: %.1f", ps4_data.dpad_x, ps4_data.dpad_y);
 
 
-		if (ps4.get_data().cross){
-			msg_magnetic.b0 = true;
+		// Remove Rack
+		if (ps4.get_data().circle){
+			if (ps4.get_data().share) {
+				msg_magnetic.b1 = true;
+				msg_magnetic.b0 = false;
+			} else {
+				msg_magnetic.b1 = false;
+				msg_magnetic.b0 = true;
+			}
 		} else {
+			msg_magnetic.b1 = false;
 			msg_magnetic.b0 = false;
 		}
 
+		// Elevator
 		if (ps4.get_data().triangle){
-			msg_elevator.x = -100.0;
+
+			int i;
+
+			if (ps4.get_data().share) {
+				i = 1;
+				msg_elevator[0].x = 0.0;
+			} else {
+				i = 0;
+				msg_elevator[1].x = 0.0;
+			}
+
+			if (ps4.get_data().options) {
+				msg_elevator[i].x = 20;
+			} else {
+				msg_elevator[i].x = 150;
+			}
+
+			if (ps4.get_data().ps) {
+				msg_elevator[i].x = -msg_elevator[i].x;
+			}
+
 		} else {
-			msg_elevator.x = 0.0;
+			msg_elevator[0].x = 0.0;
+			msg_elevator[1].x = 0.0;
 		}
 
+		// Rotate Rack
 		if (ps4.get_data().rectangle and not ps4.get_old_data().rectangle){
+			if (ps4.get_data().share) {
+				srv.request.stepper_id = 1;
+			} else {
+				srv.request.stepper_id = 0;
+			}
+
+			if (ps4.get_data().options) {
+				srv.request.num = 60;
+			} else {
+				srv.request.num = 1200;
+			}
+
+			if (ps4.get_data().ps) {
+				srv.request.flag_reverse = true;
+			} else {
+				srv.request.flag_reverse = false;
+			}
+
 			if (client_rotate.call(srv)) {
 				ROS_INFO("Sum: %d", srv.response.num);
 			} else {
@@ -110,7 +162,8 @@ int main(int argc, char **argv){
 		}
 
 		pub_magnetic.publish(msg_magnetic);
-		pub_elevator.publish(msg_elevator);
+		pub_elevator[0].publish(msg_elevator[0]);
+		pub_elevator[1].publish(msg_elevator[1]);
 
 //		if(ps4_data.dpad_x||ps4_data.dpad_y){
 //				if (fabs(ps4.get_data().dpad_y - ps4.get_old_data().dpad_y) > 0.5){

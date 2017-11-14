@@ -1,5 +1,6 @@
-Cyclone Mecanum (サイクロンメカナム)
-=================================
+Cyclone Mecanum
+===============
+サイクロンメカナム
 
 ![Cyclone Mecanum](docs/cyclone_mecanum.jpg)
 
@@ -7,7 +8,7 @@ Cyclone Mecanum (サイクロンメカナム)
 `include/devices/PS4.*` is copied from [omni_control](https://github.com/lycpaul/omni_control)
 
 ## Dependencies
-`umd_boards_ws/mecanum_top` from [umd_boards_ws](https://github.com/gaudat/umd_boards_ws)
+`umd_boards_ws/mecanum_top` from [umd_boards_ws](https://github.com/gaudat/umd_boards_ws) in branch wahaha
 
 ## Startup
 1. `roscore`

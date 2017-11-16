@@ -42,10 +42,10 @@ void PS4::Impl::joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 	data.tpad_click   = msg->buttons[13];
 }
 
-PS4::PS4(ros::NodeHandle* nh)
+PS4::PS4(ros::NodeHandle* nh, std::string topic_name)
 {
     pimpl_ = new Impl;
-    pimpl_->joy_sub = nh->subscribe<sensor_msgs::Joy>("joy", 1, &PS4::Impl::joyCallback, pimpl_);
+    pimpl_->joy_sub = nh->subscribe<sensor_msgs::Joy>(topic_name, 1, &PS4::Impl::joyCallback, pimpl_);
     
     pimpl_->data = {};
     pimpl_->old_data = {};

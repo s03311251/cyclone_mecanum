@@ -46,11 +46,17 @@ int main(int argc, char **argv){
 
 	ros::init(argc, argv, "mecanum_command");
 
-	ros::NodeHandle n;
+	ros::NodeHandle n("~");
 	
 	ros::Rate loop_rate(100);
 
-	PS4 ps4(&n);
+	// read param of PS4 topic
+	std::string ps4_topic = "joy";
+	if ( !n.getParam("ps4_topic", ps4_topic) ) {
+		ROS_ERROR("Param ps4_topic not exist/wrong type");
+	}
+
+	PS4 ps4(&n, ps4_topic);
 
 	pub_magnetic = n.advertise<m2_umd::PneumaticState>("/mecanum_top/pneumatic_0/state", 1);
 	m2_umd::PneumaticState msg_magnetic;

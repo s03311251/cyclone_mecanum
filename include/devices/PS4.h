@@ -40,7 +40,7 @@ namespace ps4_ns {
 class PS4
 {
     public:
-        PS4(ros::NodeHandle* nh);
+        PS4(ros::NodeHandle* nh, std::string topic_name);
         ps4_ns::Data get_data() const;
         ps4_ns::Data get_old_data() const;
 

@@ -87,19 +87,24 @@ int main(int argc, char **argv){
 	//client = n.serviceClient<omni_control::ResetCount>("omni_odom/reset_count");
 	
 
+	ps4_ns::Data ps4_data_old;
+	ps4_ns::Data ps4_data = ps4.get_data();
+
 	while (ros::ok()){
 
-		ps4_ns::Data ps4_data=ps4.get_data();
+		ps4_data_old = ps4_data;
+		ps4_data = ps4.get_data();
 
 		ROS_DEBUG("circle:%d, rectangle:%d, triangle:%d", ps4_data.circle, ps4_data.rectangle, ps4_data.triangle);
+		ROS_DEBUG("OLD: circle:%d, rectangle:%d, triangle:%d", ps4_data_old.circle, ps4_data_old.rectangle, ps4_data_old.triangle);
 //		ROS_DEBUG("hat_lx:%.4f, hat_ly:%.4f, circle:%d", ps4_data.hat_LX, ps4_data.hat_LY, ps4_data.circle);
 //		ROS_DEBUG("l2:%.4f, r2:%.4f, dpad_x: %.1f, dpad_y: %.1f", ps4_data.L2_analog, ps4_data.R2_analog);
 //		ROS_DEBUG("dpad_x: %.1f, dpad_y: %.1f", ps4_data.dpad_x, ps4_data.dpad_y);
 
 
 		// Remove Rack
-		if (ps4.get_data().circle){
-			if (ps4.get_data().share) {
+		if (ps4_data.circle){
+			if (ps4_data.share) {
 				msg_magnetic.b1 = true;
 				msg_magnetic.b0 = false;
 			} else {
@@ -112,11 +117,11 @@ int main(int argc, char **argv){
 		}
 
 		// Elevator
-		if (ps4.get_data().triangle){
+		if (ps4_data.triangle){
 
 			int i;
 
-			if (ps4.get_data().share) {
+			if (ps4_data.share) {
 				i = 1;
 				msg_elevator[0].x = 0.0;
 			} else {
@@ -124,13 +129,13 @@ int main(int argc, char **argv){
 				msg_elevator[1].x = 0.0;
 			}
 
-			if (ps4.get_data().options) {
+			if (ps4_data.options) {
 				msg_elevator[i].x = 20;
 			} else {
 				msg_elevator[i].x = 150;
 			}
 
-			if (ps4.get_data().ps) {
+			if (ps4_data.ps) {
 				msg_elevator[i].x = -msg_elevator[i].x;
 			}
 
@@ -140,20 +145,20 @@ int main(int argc, char **argv){
 		}
 
 		// Rotate Rack
-		if (ps4.get_data().rectangle and not ps4.get_old_data().rectangle){
-			if (ps4.get_data().share) {
+		if (ps4_data.rectangle and not ps4_data_old.rectangle){
+			if (ps4_data.share) {
 				srv.request.stepper_id = 1;
 			} else {
 				srv.request.stepper_id = 0;
 			}
 
-			if (ps4.get_data().options) {
+			if (ps4_data.options) {
 				srv.request.num = 60;
 			} else {
 				srv.request.num = 1200;
 			}
 
-			if (ps4.get_data().ps) {
+			if (ps4_data.ps) {
 				srv.request.flag_reverse = true;
 			} else {
 				srv.request.flag_reverse = false;

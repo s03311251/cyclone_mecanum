@@ -7,6 +7,8 @@ Cyclone Mecanum
 ## Copy From
 `include/devices/PS4.*` is copied from [omni_control](https://github.com/lycpaul/omni_control)
 
+Slighty different as the constructor as ask for the topic name from joy node
+
 ## Dependencies
 `umd_boards_ws/mecanum_top` from [umd_boards_ws](https://github.com/gaudat/umd_boards_ws) in branch wahaha
 
@@ -21,7 +23,8 @@ Cyclone Mecanum
 5. (optional) </br>
    `rostopic echo /joy`
 6. `rosrun mecanum_top node /dev/ttyACM0`
-7. `rosrun cyclone_mecanum mecanum_command`
+7. `rosparam set /mecanum_command/ps4_topic /joy`
+8. `rosrun cyclone_mecanum mecanum_command`
 
 ### With omni_control
 1. `roscore`
@@ -33,7 +36,7 @@ Cyclone Mecanum
 6. `rosrun cyclone_mecanum mecanum_command`
 
 ### Distinguish between /dev/ttyACMX
-		udevadm info --name=/dev/ttyACMX
+`udevadm info --name=/dev/ttyACMX`
 
 UART Board `E:ID_MODEL=54FF70065185545318341887`
 

@@ -81,7 +81,7 @@ int main(int argc, char **argv){
 
 	ps4_ns::Data ps4_data_old;
 	ps4_ns::Data ps4_data = ps4.get_data();
-	bool mode_golden = 0, mode_precise = 0;
+	//bool mode_golden = 0, mode_precise = 0;
 
 	while (ros::ok()){
 
@@ -99,7 +99,7 @@ int main(int argc, char **argv){
 //		ROS_DEBUG("dpad_x: %.1f, dpad_y: %.1f", ps4_data.dpad_x, ps4_data.dpad_y);
 
 
-		// Toggle Mode
+/*		// Toggle Mode
 		if (ps4_data.L1 and not ps4_data_old.L1){
 			mode_golden = !mode_golden;
 		}
@@ -110,7 +110,7 @@ int main(int argc, char **argv){
 
 		ROS_DEBUG("Golden:%d Precise:%d", mode_golden, mode_precise);
 
-		// Remove Rack
+*/		// Remove Rack
 		if (ps4_data.options){
 			if (ps4_data.options) {
 			msg_magnetic.b1 = true;
@@ -125,7 +125,7 @@ int main(int argc, char **argv){
 		if (ps4_data.triangle){
 			int i;
 
-			if (mode_golden) {
+			if (ps4_data.L1) {
 				i = 1;
 				msg_elevator[0].x = 0.0;
 			} else {
@@ -133,7 +133,7 @@ int main(int argc, char **argv){
 				msg_elevator[1].x = 0.0;
 			}
 
-			if (mode_precise) {
+			if (ps4_data.share) {
 				msg_elevator[i].x = 20;
 			} else {
 				msg_elevator[i].x = 150;
@@ -141,7 +141,7 @@ int main(int argc, char **argv){
 		} else if (ps4_data.cross){
 			int i;
 
-			if (mode_golden) {
+			if (ps4_data.L1) {
 				i = 1;
 				msg_elevator[0].x = 0.0;
 			} else {
@@ -149,7 +149,7 @@ int main(int argc, char **argv){
 				msg_elevator[1].x = 0.0;
 			}
 
-			if (mode_precise) {
+			if (ps4_data.share) {
 				msg_elevator[i].x = -20;
 			} else {
 				msg_elevator[i].x = -150;
@@ -161,7 +161,7 @@ int main(int argc, char **argv){
 
 		// Rotate Rack
 		if (ps4_data.rectangle and not ps4_data_old.rectangle){
-			if (mode_golden) {
+			if (ps4_data.L1) {
 				srv.request.stepper_id = 1;
 				srv.request.flag_reverse = true;
 			} else {
@@ -169,10 +169,10 @@ int main(int argc, char **argv){
 				srv.request.flag_reverse = false;
 			}
 
-			if (mode_precise) {
+			if (ps4_data.share) {
 				srv.request.num = 60;
 			} else {
-				srv.request.num = 1200;
+				srv.request.num = 600;
 			}
 
 			if (client_rotate.call(srv)) {
@@ -184,18 +184,18 @@ int main(int argc, char **argv){
 		}
 
 		if (ps4_data.circle and not ps4_data_old.circle){
-			if (mode_golden) {
+			if (ps4_data.L1) {
 				srv.request.stepper_id = 1;
-				srv.request.flag_reverse = true;
+				srv.request.flag_reverse = false;
 			} else {
 				srv.request.stepper_id = 0;
-				srv.request.flag_reverse = false;
+				srv.request.flag_reverse = true;
 			}
 
-			if (mode_precise) {
+			if (ps4_data.share) {
 				srv.request.num = 60;
 			} else {
-				srv.request.num = 1200;
+				srv.request.num = 600;
 			}
 
 			if (client_rotate.call(srv)) {

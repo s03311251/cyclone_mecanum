@@ -51,7 +51,7 @@ STM32F407Discovery `ID_MODEL=50002C001951353235373431`
 | Rectangle | Rotate Rack anti-closewise by 18° | Rotate 1.8°     |
 | Circle    | Rotate Rack closewise by 18°      | Rotate 1.8°     | 
 
-|       | Mode Toggle Key |
-| ----- | --------------- |
-| L1    | Golden Rack     |
-| Share | Precise         |
+|       | Modification Key |
+| ----- | ---------------- |
+| L1    | Golden Rack      |
+| Share | Precise          |

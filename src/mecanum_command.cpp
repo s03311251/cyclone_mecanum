@@ -32,14 +32,6 @@ ros::Publisher pub_elevator[2];
 //ros::Publisher pub_twist_target;
 ros::ServiceClient client_rotate;
 
-double linear_velocity_const=0.5;
-double angular_velocity_const=0.2;
-
-void limiting(double& input, double value){
-	input=input>value?value:input;
-	input=input<-value?-value:input;
-}
-
 int main(int argc, char **argv){
 
 	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
@@ -76,7 +68,7 @@ int main(int argc, char **argv){
 	srv.request.flag_period = false;
 	srv.request.flag_reverse = false;
 	srv.request.stepper_id = 0;
-	srv.request.num = 1200;
+	srv.request.num = 600;
 
 	//pub_twist_target = n.advertise<geometry_msgs::Pose2D>("command/twistTarget", 1);
 
@@ -89,27 +81,40 @@ int main(int argc, char **argv){
 
 	ps4_ns::Data ps4_data_old;
 	ps4_ns::Data ps4_data = ps4.get_data();
+	bool mode_golden = 0, mode_precise = 0;
 
 	while (ros::ok()){
 
 		ps4_data_old = ps4_data;
 		ps4_data = ps4.get_data();
 
-		ROS_DEBUG("circle:%d, rectangle:%d, triangle:%d", ps4_data.circle, ps4_data.rectangle, ps4_data.triangle);
-		ROS_DEBUG("OLD: circle:%d, rectangle:%d, triangle:%d", ps4_data_old.circle, ps4_data_old.rectangle, ps4_data_old.triangle);
+		ROS_DEBUG("NOW Op:%d /\\:%d X:%d []:%d O:%d L1:%d Sr:%d",
+			ps4_data.options, ps4_data.triangle, ps4_data.cross, 
+			ps4_data.rectangle, ps4_data.circle, ps4_data.L1, ps4_data.share);
+		ROS_DEBUG("OLD Op:%d /\\:%d X:%d []:%d O:%d L1:%d Sr:%d",
+			ps4_data_old.options, ps4_data_old.triangle, ps4_data_old.cross, 
+			ps4_data_old.rectangle, ps4_data_old.circle, ps4_data_old.L1, ps4_data.share);
 //		ROS_DEBUG("hat_lx:%.4f, hat_ly:%.4f, circle:%d", ps4_data.hat_LX, ps4_data.hat_LY, ps4_data.circle);
 //		ROS_DEBUG("l2:%.4f, r2:%.4f, dpad_x: %.1f, dpad_y: %.1f", ps4_data.L2_analog, ps4_data.R2_analog);
 //		ROS_DEBUG("dpad_x: %.1f, dpad_y: %.1f", ps4_data.dpad_x, ps4_data.dpad_y);
 
 
+		// Toggle Mode
+		if (ps4_data.L1 and not ps4_data_old.L1){
+			mode_golden = !mode_golden;
+		}
+
+		if (ps4_data.share and not ps4_data_old.share){
+			mode_precise = !mode_precise;
+		}
+
+		ROS_DEBUG("Golden:%d Precise:%d", mode_golden, mode_precise);
+
 		// Remove Rack
-		if (ps4_data.circle){
-			if (ps4_data.share) {
-				msg_magnetic.b1 = true;
-				msg_magnetic.b0 = false;
-			} else {
-				msg_magnetic.b1 = false;
-				msg_magnetic.b0 = true;
+		if (ps4_data.options){
+			if (ps4_data.options) {
+			msg_magnetic.b1 = true;
+			msg_magnetic.b0 = true;
 			}
 		} else {
 			msg_magnetic.b1 = false;
@@ -118,10 +123,9 @@ int main(int argc, char **argv){
 
 		// Elevator
 		if (ps4_data.triangle){
-
 			int i;
 
-			if (ps4_data.share) {
+			if (mode_golden) {
 				i = 1;
 				msg_elevator[0].x = 0.0;
 			} else {
@@ -129,16 +133,27 @@ int main(int argc, char **argv){
 				msg_elevator[1].x = 0.0;
 			}
 
-			if (ps4_data.options) {
+			if (mode_precise) {
 				msg_elevator[i].x = 20;
 			} else {
 				msg_elevator[i].x = 150;
 			}
+		} else if (ps4_data.cross){
+			int i;
 
-			if (ps4_data.ps) {
-				msg_elevator[i].x = -msg_elevator[i].x;
+			if (mode_golden) {
+				i = 1;
+				msg_elevator[0].x = 0.0;
+			} else {
+				i = 0;
+				msg_elevator[1].x = 0.0;
 			}
 
+			if (mode_precise) {
+				msg_elevator[i].x = -20;
+			} else {
+				msg_elevator[i].x = -150;
+			}
 		} else {
 			msg_elevator[0].x = 0.0;
 			msg_elevator[1].x = 0.0;
@@ -146,22 +161,41 @@ int main(int argc, char **argv){
 
 		// Rotate Rack
 		if (ps4_data.rectangle and not ps4_data_old.rectangle){
-			if (ps4_data.share) {
+			if (mode_golden) {
 				srv.request.stepper_id = 1;
+				srv.request.flag_reverse = true;
 			} else {
 				srv.request.stepper_id = 0;
+				srv.request.flag_reverse = false;
 			}
 
-			if (ps4_data.options) {
+			if (mode_precise) {
 				srv.request.num = 60;
 			} else {
 				srv.request.num = 1200;
 			}
 
-			if (ps4_data.ps) {
+			if (client_rotate.call(srv)) {
+				ROS_INFO("Sum: %d", srv.response.num);
+			} else {
+				ROS_ERROR("Failed to call service add_two_ints");
+				return 1;
+			}
+		}
+
+		if (ps4_data.circle and not ps4_data_old.circle){
+			if (mode_golden) {
+				srv.request.stepper_id = 1;
 				srv.request.flag_reverse = true;
 			} else {
+				srv.request.stepper_id = 0;
 				srv.request.flag_reverse = false;
+			}
+
+			if (mode_precise) {
+				srv.request.num = 60;
+			} else {
+				srv.request.num = 1200;
 			}
 
 			if (client_rotate.call(srv)) {

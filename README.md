@@ -43,17 +43,15 @@ UART Board `E:ID_MODEL=54FF70065185545318341887`
 STM32F407Discovery `ID_MODEL=50002C001951353235373431`
 
 ## Control
-|           |                    | Share           | Options         | PS                   |
-| --------- | ------------------ | --------------- | --------------- | -------------------- |
-| Circle    | Lift Rack          | Use another one | N/A             | N/A                  |
-| Triangle  | Elevator           | Use another one | Precise Control | In another direction |
-| Rectangle | Rotate Rack by 36° | Use another one | Rotate 1.8°     | In another direction |
+|           |  Function Key                     | Precise Mode    |
+| --------- | --------------------------------- | --------------- |
+| Options   | Lift Both Rack                    | N/A             |
+| Triangle  | Elevator Up                       | Move 20x slower |
+| Cross     | Elevator Down                     | Move 20x slower |
+| Rectangle | Rotate Rack anti-closewise by 18° | Rotate 1.8°     |
+| Circle    | Rotate Rack closewise by 18°      | Rotate 1.8°     | 
 
-
-
-
-
-
-
-
-
+|       | Mode Toggle Key |
+| ----- | --------------- |
+| L1    | Golden Rack     |
+| Share | Precise         |

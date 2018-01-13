@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   control_toolbox
   m2_umd
   serial
+  hci_ps4
 )
 
 ## System dependencies are found with CMake's conventions
@@ -73,10 +74,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -109,7 +110,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
+  LIBRARIES ${PROJECT_NAME} hci_ps4
   CATKIN_DEPENDS roscpp rospy std_msgs m2_umd
   DEPENDS system_lib
 )

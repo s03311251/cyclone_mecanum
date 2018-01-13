@@ -7,8 +7,8 @@
 #include <nav_msgs/Odometry.h>
 #include <cstdlib>
 #include <cmath>
-#include "devices/PS4.h"
-
+//#include "devices/PS4.h"
+#include "hci_ps4/PS4.h"
 #include "m2_umd/MotorStatus.h"
 #include "m2_umd/Get_MotorBoard.h"
 #include "m2_umd/Set_MotorBoard.h"
@@ -42,13 +42,7 @@ int main(int argc, char **argv){
 	
 	ros::Rate loop_rate(100);
 
-	// read param of PS4 topic
-	std::string ps4_topic = "joy";
-	if ( !n.getParam("ps4_topic", ps4_topic) ) {
-		ROS_ERROR("Param ps4_topic not exist/wrong type");
-	}
-
-	PS4 ps4(&n, ps4_topic);
+	PS4 ps4(&n);
 
 	pub_magnetic = n.advertise<m2_umd::PneumaticState>("/mecanum_top/pneumatic_0/state", 1);
 	m2_umd::PneumaticState msg_magnetic;
@@ -90,10 +84,10 @@ int main(int argc, char **argv){
 
 		ROS_DEBUG("NOW Op:%d /\\:%d X:%d []:%d O:%d L1:%d Sr:%d",
 			ps4_data.options, ps4_data.triangle, ps4_data.cross, 
-			ps4_data.rectangle, ps4_data.circle, ps4_data.L1, ps4_data.share);
+			ps4_data.square, ps4_data.circle, ps4_data.L1, ps4_data.share);
 		ROS_DEBUG("OLD Op:%d /\\:%d X:%d []:%d O:%d L1:%d Sr:%d",
 			ps4_data_old.options, ps4_data_old.triangle, ps4_data_old.cross, 
-			ps4_data_old.rectangle, ps4_data_old.circle, ps4_data_old.L1, ps4_data.share);
+			ps4_data_old.square, ps4_data_old.circle, ps4_data_old.L1, ps4_data.share);
 //		ROS_DEBUG("hat_lx:%.4f, hat_ly:%.4f, circle:%d", ps4_data.hat_LX, ps4_data.hat_LY, ps4_data.circle);
 //		ROS_DEBUG("l2:%.4f, r2:%.4f, dpad_x: %.1f, dpad_y: %.1f", ps4_data.L2_analog, ps4_data.R2_analog);
 //		ROS_DEBUG("dpad_x: %.1f, dpad_y: %.1f", ps4_data.dpad_x, ps4_data.dpad_y);
@@ -160,7 +154,7 @@ int main(int argc, char **argv){
 		}
 
 		// Rotate Rack
-		if (ps4_data.rectangle and not ps4_data_old.rectangle){
+		if (ps4_data.square and not ps4_data_old.square){
 			if (ps4_data.L1) {
 				srv.request.stepper_id = 1;
 				srv.request.flag_reverse = true;

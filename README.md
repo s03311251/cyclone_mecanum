@@ -1,8 +1,61 @@
 Cyclone Mecanum
 ===============
-サイクロンメ
+サイクロンメカナム
 
 ![Cyclone Mecanum](docs/cyclone_mecanum.jpg)
+
+Known Bug: No GP chip inside
+
+This package contain 2 nodes: `mecanum_command` and `mecanum_umd`.
+
+## mecanum_command
+This node reads several commands and take corrosponding actions.
+
+### Topics & Services
+- `/elevator_cont`
+	- message: `cyclone_mecanum/ElevatorCont.h`
+	    - int32 elevator_id
+	    - int16 vel_setpoint, v_setpoint passing to motor of elevator (around 140 is ok)
+- `/em_cont`
+	- message: `cyclone_mecanum/EmCont.h`
+	    - int32 em_id
+	    - int16 release, true to release the electromagnetic, don't provide power for too long
+- `/disk_spin`
+	- service: `std_srvs/SetBool.h`
+	    - bool data, true to spin clockwise
+- `/elevator_oneshot`
+	- service: `cyclone_mecanum/ElevatorOneshot.h`
+	    - int32 elevator_id
+	    - bool up
+	- NOT implemented!
+
+### Parameters
+- `disk_spin_angle` (default: 36)
+	- The Angle of disk spin once `/disk_spin` is called
+- `light_gate_IO_port` (default: {1, 2})
+- `em_IO_port`(default: {3})
+	- The ports plugged to IO board
+
+### Runtime Dependencies
+- `mecanum_umd`
+- `stepper_control` from package mechaduino_stepper
+
+## mecanum_umd
+This node is copied from the package `mecanum_top`, which handles the UMD boards.
+
+### Parameters
+- `umd_port` (default: /dev/ttyACM1)
+- `umd_baudrate` (default: 921600)
+
+
+
+
+
+
+
+
+
+# Outdated Information
 
 ## Copy From
 `include/devices/PS4.*` is copied from [omni_control](https://github.com/lycpaul/omni_control)

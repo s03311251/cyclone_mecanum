@@ -1,255 +1,222 @@
 #include <ros/ros.h>
 #include <ros/console.h>
-#include <std_msgs/Float64.h>
-#include <std_msgs/UInt8.h>
+//#include <std_msgs/Float64.h>
+
 //#include <geometry_msgs/Pose2D.h>
+
+//#include <nav_msgs/Odometry.h>
+//#include <cstdlib>
+//#include <cmath>
+
+#include <m2_umd/IOPort.h>
+#include <m2_umd/IOState.h>
+//#include "m2_umd/MotorStatus.h"
+//#include "m2_umd/Get_MotorBoard.h"
+//#include "m2_umd/Set_MotorBoard.h"
 #include <geometry_msgs/Vector3.h>
-#include <nav_msgs/Odometry.h>
-#include <cstdlib>
-#include <cmath>
-//#include "devices/PS4.h"
-#include "hci_ps4/PS4.h"
-#include "m2_umd/MotorStatus.h"
-#include "m2_umd/Get_MotorBoard.h"
-#include "m2_umd/Set_MotorBoard.h"
-//#include "m2_umd/Set_ServoBoard.h"
-#include "m2_umd/PneumaticState.h"
+//#include <mechaduino_stepper/Move.h>
+//#include <cyclone_mecanum/ElevatorCont.h>
+//#include <cyclone_mecanum/EmCont.h>
 
-#include "m2_umd/UmdUtils.hpp"
-#include "m2_umd/UmdBoard.hpp"
-#include "m2_umd/UmdManager.hpp"
+//#include <std_srvs/SetBool.h>
+//#include <cyclone_mecanum/ElevatorOneshot.h>
+#include <cyclone_mecanum/IOCmd.h>
+#include <cyclone_mecanum/ServoCmd.h>
 
-#include "m2_umd/StepperBoard.hpp"
-//#include "m2_umd/ServoBoard.hpp"
-#include "m2_umd/PneumaticBoard.hpp"
-//#include "m2_umd/EncoderBoard.hpp"
-#include "m2_umd/MotorBoard.hpp"
+/*const int NUM_MOTOR = 1;
+const int NUM_LIGHT_GATE = 2;*/
+int servo_setpoint_open;
+int servo_setpoint_close;
 
-//#include <omni_control/ResetCount.h>
+std::vector<int> IO_port;
+std::vector<int> servo_port;
 
-ros::Publisher pub_magnetic;
-ros::Publisher pub_elevator[2];
-//ros::Publisher pub_twist_target;
-ros::ServiceClient client_rotate;
+ros::Publisher pub_IO;
+std::vector<ros::Publisher> pub_servo;
 
-int main(int argc, char **argv){
+ros::Subscriber sub_IO_cmd;
+ros::Subscriber sub_servo_cmd;
 
+/*int disk_spin_angle;
+std::vector<int> light_gate_IO_port;
+std::vector<int> em_IO_port;
+std::vector<bool> light_gate_state;
+
+ros::Publisher pub_mechaduino;
+ros::Publisher pub_motor[NUM_MOTOR];
+ros::Publisher pub_IO;
+ros::Subscriber sub_IO;
+
+ros::Subscriber sub_elevator_cont;
+ros::Subscriber sub_em_cont;
+ros::ServiceServer ser_disk;
+ros::ServiceServer ser_elevator_one;
+//ros::ServiceClient client_rotate;
+
+void IOCallback(const m2_umd::IOState::ConstPtr& msg) {
+	for (int i = 0; i < light_gate_IO_port.size(); i++) {
+		light_gate_state[i] = msg->ports[light_gate_IO_port[i]];
+	}
+	// and maybe boardcast some events which stop elevator_oneshot?
+}
+
+void elevatorContCallback(const cyclone_mecanum::ElevatorCont::ConstPtr& msg_elevator) {
+	if (msg_elevator->elevator_id >= NUM_MOTOR) {
+		return;
+	}
+
+	geometry_msgs::Vector3 msg_motor;
+
+	msg_motor.x = msg_elevator->vel_setpoint;
+	msg_motor.y = 0.0;
+	msg_motor.z = 0.0;
+	pub_motor[msg_elevator->elevator_id].publish(msg_motor);
+}
+
+bool diskSpinCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) {
+	mechaduino_stepper::Move msg;
+
+	// rotate closewise if true
+	msg.deg = req.data ? -disk_spin_angle : disk_spin_angle;
+
+	if (pub_mechaduino.getNumSubscribers() < 1) {
+		res.success = false;
+		res.message = "No subscriber for Mechaduino";
+		ROS_DEBUG("No subscriber for Mechaduino");
+		return true;
+	}
+
+	pub_mechaduino.publish(msg);
+	ros::spinOnce();
+
+	res.success = true;
+	res.message = "Command sent";
+	return true;
+}
+
+bool elevatorOneCallback(cyclone_mecanum::ElevatorOneshot::Request& req, cyclone_mecanum::ElevatorOneshot::Response& res) {
+	//req.elevator_id;
+	//req.up;
+
+	if (req.elevator_id >= NUM_MOTOR) {
+		res.success = false;
+		res.message = "Elevator ID doesn't exist";
+		return true;
+	}
+
+	res.success = false;
+	res.message = "Not yet implemented!";
+	return true;
+}
+
+void emContCallback(const cyclone_mecanum::EmCont::ConstPtr& msg_em) {
+	if (msg_em->em_id >= em_IO_port.size()) {
+		return;
+	}
+	m2_umd::IOPort msg_io;
+	msg_io.port = em_IO_port[msg_em->em_id];
+	msg_io.on = msg_em->release;
+	pub_IO.publish(msg_io);
+}*/
+
+void pneumCallback(const cyclone_mecanum::IOCmd::ConstPtr& msg_IO) {
+	if (msg_IO->id >= IO_port.size()) {
+		return;
+	}
+	m2_umd::IOPort msg;
+	msg.port = IO_port[msg_IO->id];
+	msg.on = msg_IO->on;
+	pub_IO.publish(msg);
+}
+
+void servoCallback(const cyclone_mecanum::ServoCmd::ConstPtr& msg_servo) {
+	if (msg_servo->id >= servo_port.size()) {
+		return;
+	}
+	geometry_msgs::Vector3 msg;
+	msg.x = msg_servo->open ? servo_setpoint_open : servo_setpoint_close;
+	pub_servo[msg_servo->id].publish(msg);
+}
+
+
+
+int main(int argc, char **argv) {
 	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
-
 	ros::init(argc, argv, "mecanum_command");
 
-	ros::NodeHandle n("~");
-	
+	ros::NodeHandle nh;
+	ros::NodeHandle nh_private("~");
+
+
+
+	/* Load parameters */
+	/*nh_private.param("disk_spin_angle", disk_spin_angle, 36);
+	ROS_DEBUG("Disk Spin Angle: %d", disk_spin_angle);
+
+	nh_private.getParam("light_gate_IO_port", light_gate_IO_port);
+	light_gate_state.clear();
+	light_gate_state.resize(light_gate_IO_port.size(), 0);
+	ROS_DEBUG("Light Gate IO Port: (%lu)", light_gate_IO_port.size());
+	for (int i = 0; i < light_gate_IO_port.size(); i++) {
+		// 1-12 is printed on IO Board, but IO_Board.hpp uses 0-11
+		light_gate_IO_port[i]--;
+		ROS_DEBUG("%d", light_gate_IO_port[i]);
+	}
+
+	nh_private.getParam("em_IO_port", em_IO_port);
+	ROS_DEBUG("EM IO Port: (%lu)", em_IO_port.size());
+	for (int i = 0; i < em_IO_port.size(); i++) {
+		// 1-12 is printed on IO Board, but IO_Board.hpp uses 0-11
+		em_IO_port[i]--;
+		ROS_DEBUG("%d", em_IO_port[i]);
+	}*/
+
+
+	nh_private.param("servo_setpoint_open", servo_setpoint_open, 371);
+	nh_private.param("servo_setpoint_close", servo_setpoint_close, 370);
+	ROS_DEBUG("Servo: %d - %d", servo_setpoint_open, servo_setpoint_close);
+
+	nh_private.getParam("IO_port", IO_port);
+	ROS_DEBUG("IO Port: (%lu)", IO_port.size());
+	for (int i = 0; i < IO_port.size(); i++) {
+		// 1-12 is printed on IO Board, but IO_Board.hpp uses 0-11
+		IO_port[i]--;
+		ROS_DEBUG("%d", IO_port[i]);
+	}
+
+	nh_private.getParam("servo_port", servo_port);
+	ROS_DEBUG("Servo Port: (%lu)", servo_port.size());
+	for (int i = 0; i < servo_port.size(); i++) {
+		ROS_DEBUG("%d", servo_port[i]);
+	}
+
+
+
+	/* Define Publisher, Subscriber, ServiceServer */
+	std::string prefix = "/mecanum_command";
+
+	/*pub_mechaduino = nh.advertise<mechaduino_stepper::Move>("/stepper_control/movedeg", 1000);
+	pub_motor[0] = nh.advertise<geometry_msgs::Vector3>("/mecanum_umd/motor_4/v_setpoint", 1);
+	pub_IO = nh.advertise<m2_umd::IOPort>("/mecanum_umd/IO_0/set_port", 1000);
+	sub_IO = nh.subscribe("/mecanum_umd/IO_0/get_state", 1000, IOCallback);
+
+	sub_elevator_cont = nh.subscribe(prefix + "/elevator_cont", 1000, elevatorContCallback);
+	sub_em_cont = nh.subscribe(prefix + "/em_cont", 1000, emContCallback);
+	ser_disk = nh.advertiseService(prefix + "/disk_spin", diskSpinCallback);
+	ser_elevator_one = nh.advertiseService(prefix + "/elevator_oneshot", elevatorOneCallback);*/
+
+	pub_IO = nh.advertise<m2_umd::IOPort>("/mecanum_umd/IO_0/set_port", 1000);
+	for(int i=0;i<servo_port.size();i++){
+		ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/mecanum_umd/servo_0/command" + std::to_string(servo_port[i]), 1000);
+		pub_servo.push_back(std::move(pub));
+	}
+
+	sub_IO_cmd = nh.subscribe(prefix + "/pneum_cmd", 1000, pneumCallback);
+	sub_servo_cmd = nh.subscribe(prefix + "/servo_cmd", 1000, servoCallback);
+
+	/* Run */
 	ros::Rate loop_rate(100);
-
-	PS4 ps4(&n);
-
-	pub_magnetic = n.advertise<m2_umd::PneumaticState>("/mecanum_top/pneumatic_0/state", 1);
-	m2_umd::PneumaticState msg_magnetic;
-
-	pub_elevator[0] = n.advertise<geometry_msgs::Vector3>("/mecanum_top/motor_0/setpoint", 1);
-	pub_elevator[1] = n.advertise<geometry_msgs::Vector3>("/mecanum_top/motor_1/setpoint", 1);
-	geometry_msgs::Vector3 msg_elevator[2];
-	for (int i=0;i<2;i++) {
-		msg_elevator[i].x = 0.0;
-		msg_elevator[i].y = 0.0;
-		msg_elevator[i].z = 0.0;
-	}
-
-	client_rotate = n.serviceClient<m2_umd::Instruct_StepperBoard>("/mecanum_top/stepper_0/instruct_StepperBoard");
-	m2_umd::Instruct_StepperBoard srv;
-	srv.request.flag_disable = false;
-	srv.request.flag_period = false;
-	srv.request.flag_reverse = false;
-	srv.request.stepper_id = 0;
-	srv.request.num = 600;
-
-	//pub_twist_target = n.advertise<geometry_msgs::Pose2D>("command/twistTarget", 1);
-
-	//geometry_msgs::Pose2D msg;
-	//std_msgs::UInt8 mode;mode.data=0;
-
-	//ros::service::waitForService("omni_odom/reset_count");  
-	//client = n.serviceClient<omni_control::ResetCount>("omni_odom/reset_count");
-	
-
-	ps4_ns::Data ps4_data_old;
-	ps4_ns::Data ps4_data = ps4.get_data();
-	//bool mode_golden = 0, mode_precise = 0;
-
-	while (ros::ok()){
-
-		ps4_data_old = ps4_data;
-		ps4_data = ps4.get_data();
-
-		ROS_DEBUG("NOW Op:%d /\\:%d X:%d []:%d O:%d L1:%d Sr:%d",
-			ps4_data.options, ps4_data.triangle, ps4_data.cross, 
-			ps4_data.square, ps4_data.circle, ps4_data.L1, ps4_data.share);
-		ROS_DEBUG("OLD Op:%d /\\:%d X:%d []:%d O:%d L1:%d Sr:%d",
-			ps4_data_old.options, ps4_data_old.triangle, ps4_data_old.cross, 
-			ps4_data_old.square, ps4_data_old.circle, ps4_data_old.L1, ps4_data.share);
-//		ROS_DEBUG("hat_lx:%.4f, hat_ly:%.4f, circle:%d", ps4_data.hat_LX, ps4_data.hat_LY, ps4_data.circle);
-//		ROS_DEBUG("l2:%.4f, r2:%.4f, dpad_x: %.1f, dpad_y: %.1f", ps4_data.L2_analog, ps4_data.R2_analog);
-//		ROS_DEBUG("dpad_x: %.1f, dpad_y: %.1f", ps4_data.dpad_x, ps4_data.dpad_y);
-
-
-/*		// Toggle Mode
-		if (ps4_data.L1 and not ps4_data_old.L1){
-			mode_golden = !mode_golden;
-		}
-
-		if (ps4_data.share and not ps4_data_old.share){
-			mode_precise = !mode_precise;
-		}
-
-		ROS_DEBUG("Golden:%d Precise:%d", mode_golden, mode_precise);
-
-*/		// Remove Rack
-		if (ps4_data.options){
-			if (ps4_data.options) {
-			msg_magnetic.b1 = true;
-			msg_magnetic.b0 = true;
-			}
-		} else {
-			msg_magnetic.b1 = false;
-			msg_magnetic.b0 = false;
-		}
-
-		// Elevator
-		if (ps4_data.triangle){
-			int i;
-
-			if (ps4_data.L1) {
-				i = 1;
-				msg_elevator[0].x = 0.0;
-			} else {
-				i = 0;
-				msg_elevator[1].x = 0.0;
-			}
-
-			if (ps4_data.share) {
-				msg_elevator[i].x = 20;
-			} else {
-				msg_elevator[i].x = 150;
-			}
-		} else if (ps4_data.cross){
-			int i;
-
-			if (ps4_data.L1) {
-				i = 1;
-				msg_elevator[0].x = 0.0;
-			} else {
-				i = 0;
-				msg_elevator[1].x = 0.0;
-			}
-
-			if (ps4_data.share) {
-				msg_elevator[i].x = -20;
-			} else {
-				msg_elevator[i].x = -150;
-			}
-		} else {
-			msg_elevator[0].x = 0.0;
-			msg_elevator[1].x = 0.0;
-		}
-
-		// Rotate Rack
-		if (ps4_data.square and not ps4_data_old.square){
-			if (ps4_data.L1) {
-				srv.request.stepper_id = 1;
-				srv.request.flag_reverse = true;
-			} else {
-				srv.request.stepper_id = 0;
-				srv.request.flag_reverse = false;
-			}
-
-			if (ps4_data.share) {
-				srv.request.num = 60;
-			} else {
-				srv.request.num = 600;
-			}
-
-			if (client_rotate.call(srv)) {
-				ROS_INFO("Sum: %d", srv.response.num);
-			} else {
-				ROS_ERROR("Failed to call service add_two_ints");
-				return 1;
-			}
-		}
-
-		if (ps4_data.circle and not ps4_data_old.circle){
-			if (ps4_data.L1) {
-				srv.request.stepper_id = 1;
-				srv.request.flag_reverse = false;
-			} else {
-				srv.request.stepper_id = 0;
-				srv.request.flag_reverse = true;
-			}
-
-			if (ps4_data.share) {
-				srv.request.num = 60;
-			} else {
-				srv.request.num = 600;
-			}
-
-			if (client_rotate.call(srv)) {
-				ROS_INFO("Sum: %d", srv.response.num);
-			} else {
-				ROS_ERROR("Failed to call service add_two_ints");
-				return 1;
-			}
-		}
-
-		pub_magnetic.publish(msg_magnetic);
-		pub_elevator[0].publish(msg_elevator[0]);
-		pub_elevator[1].publish(msg_elevator[1]);
-
-//		if(ps4_data.dpad_x||ps4_data.dpad_y){
-//				if (fabs(ps4.get_data().dpad_y - ps4.get_old_data().dpad_y) > 0.5){
-//					linear_velocity_const+=ps4_data.dpad_y*0.1;
-//				}
-//				if (fabs(ps4.get_data().dpad_x - ps4.get_old_data().dpad_x) > 0.5){
-//					angular_velocity_const+=(-ps4_data.dpad_x)*0.1;
-//				}
-//				ros::spinOnce();
-//		}
-
-//		if(ps4_data.L1){
-//			omni_control::ResetCount srv;
-//			srv.request.x = 0;
-//			srv.request.y = 0;
-//			srv.request.th = 0;
-//			if (client.call(srv)){
-//				ROS_DEBUG("Service call successful: %f", srv.response.stamp.toSec());
-//			}else{
-//				ROS_ERROR("Failed to call service reset_odom");
-//			}
-//			ros::spinOnce();
-//		}
-
-//		if (ps4.get_data().tpad_click&&(!ps4.get_old_data().tpad_click)){
-//			//if (ps4.get_data().circle&&(!ps4.get_old_data().circle)){
-//			mode.data=mode.data==0?1:0;
-//		}
-
-//		msg.x=ps4_data.hat_LY*linear_velocity_const;
-//		msg.y=ps4_data.hat_RX*linear_velocity_const;
-//		msg.theta=(-1.0)*(ps4_data.L2_analog-1)*0.5*angular_velocity_const;
-//		msg.theta+=(ps4_data.R2_analog-1)*0.5*angular_velocity_const;
-
-//		limiting(msg.x,linear_velocity_const*2.0);
-//		limiting(msg.y,linear_velocity_const*2.0);
-//		limiting(msg.theta,angular_velocity_const*2.0);
-
-//		ROS_DEBUG("l_vel: %.4f, a_vel: %.4f", linear_velocity_const, angular_velocity_const);
-//		ROS_DEBUG("x:%.2f, y:%.2f, z:%.2f", msg.x, msg.y, msg.theta);
-
-//		pub_mode.publish(mode);
-//		pub_twist_target.publish(msg);
-
-		ros::spinOnce();
-		loop_rate.sleep();
-	}
+	ros::spin();
 
 	return 0;
 }

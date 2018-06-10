@@ -1,0 +1,5 @@
+int32 elevator_id
+bool up
+---
+bool success
+string message

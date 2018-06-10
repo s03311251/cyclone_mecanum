@@ -13,12 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   message_runtime
   roscpp
   rospy
-  std_msgs
   geometry_msgs
-  control_toolbox
+  std_srvs
   m2_umd
   serial
-  hci_ps4
 )
 
 ## System dependencies are found with CMake's conventions
@@ -55,16 +53,19 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-# )
+add_message_files(
+  FILES
+  ElevatorCont.msg
+  EmCont.msg
+  IOCmd.msg
+  ServoCmd.msg
+)
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  ElevatorOneshot.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -74,10 +75,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -110,24 +111,24 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME} hci_ps4
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS message_runtime
   CATKIN_DEPENDS roscpp rospy std_msgs m2_umd
-  DEPENDS system_lib
+  #DEPENDS system_lib
 )
 
 ###########
 ## Build ##
 ###########
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+# 7.1 Include paths and library paths
+include_directories(include ${catkin_INCLUDE_DIRS})
+#link_directories()
 
-add_library( ${PROJECT_NAME}_ps4 include/devices/PS4.cpp
-)
+# 8 Libraries/Executables to build
+# http://www.mariobadr.com/creating-a-header-only-library-with-cmake.html
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE include)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -163,8 +164,17 @@ add_library( ${PROJECT_NAME}_ps4 include/devices/PS4.cpp
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(mecanum_command src/mecanum_command.cpp)
-target_link_libraries(mecanum_command ${catkin_LIBRARIES} ${PROJECT_NAME}_ps4)
-add_dependencies(mecanum_command ${catkin_LIBRARIES})
+target_link_libraries(mecanum_command ${catkin_LIBRARIES})
+
+add_dependencies(mecanum_command ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(mecanum_umd src/mecanum_umd.cpp)
+target_link_libraries(mecanum_umd ${catkin_LIBRARIES})
+add_dependencies(mecanum_umd ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(mecanum_ps4 src/mecanum_ps4.cpp)
+target_link_libraries(mecanum_ps4 ${catkin_LIBRARIES})
+add_dependencies(mecanum_ps4 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #############
 ## Install ##

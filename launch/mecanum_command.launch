@@ -1,0 +1,25 @@
+<launch>
+<!--	<node pkg="mechaduino_stepper" type="stepper_control" name="stepper_control">
+		<param name="mechaduino_port" value="/dev/ttyACM0" />
+		<param name="mechaduino_baudrate" value="115200" />
+	</node>
+-->
+	<node pkg="cyclone_mecanum" type="mecanum_umd" name="mecanum_umd">
+
+		<param name="use_umd" value="true" />
+		<param name="use_IO" value="true" />
+
+		<param name="umd_port" value="/dev/ttyACM0" />
+		<param name="umd_baudrate" value="921600" />
+		<param name="IO_port" value="/dev/ttyACM2" />
+		<param name="IO_baudrate" value="921600" />
+	</node>
+
+	<node pkg="cyclone_mecanum" type="mecanum_command" name="mecanum_command">
+		<rosparam param="IO_port"> [1, 2] </rosparam>
+		<rosparam param="servo_port"> [0, 1] </rosparam>
+
+		<param name="servo_setpoint_open" value="371" />
+		<param name="servo_setpoint_close" value="370" />
+	</node>
+</launch>
